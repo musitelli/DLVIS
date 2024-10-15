@@ -1,0 +1,805 @@
+file:///Users/mateo/Library/CloudStorage/OneDrive-MusitelliFilm%26Digital/04%20-%20FING/DLVIS/E1/assignment1/Desarrollos_Latex.ipynb {"mtime":1727379438566,"ctime":1727303062288,"size":2552,"etag":"3d40hk3ac2ka","orphaned":false,"typeId":"notebook/jupyter-notebook"}
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# KNN:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Distancias loop 2:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Norma y distancia entre vectores:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "$$u\\cdot v = \\lVert u \\rVert \\cdot \\lVert v \\rVert \\cdot \\cos(\\theta)$$\n",
+    "$$\\overset{u=v}{\\Rightarrow} u\\cdot u = \\lVert u \\rVert \\cdot \\lVert u \\rVert \\cdot \\cos(0) = \\lVert u \\rVert ^ 2$$\n",
+    "$$u\\cdot u = \\lVert u \\rVert ^ 2$$\n",
+    "Utilizando:\n",
+    "$$u=x-y$$\n",
+    "Resulta:\n",
+    "$$(x-y)\\cdot(x-y)=\\lVert x-y \\rVert ^ 2$$\n",
+    "Como nos encontramos en $\\mathbb R^n$:\n",
+    "$$u\\cdot v = \\sum_{i=0}^{N-1}v_iu_i=uv^T$$\n",
+    "Por lo que:\n",
+    "$$(x-y)\\cdot(x-y)=\\lVert x-y \\rVert ^ 2=(x-y)(x-y)^T$$\n",
+    "Entonces, resumiendo:\n",
+    "$$\\lVert x-y \\rVert ^ 2=(x-y)(x-y)^T\\Rightarrow \\lVert x-y \\rVert=\\sqrt{(x-y)(x-y)^T}$$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Test:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Validation of equality with np.linalg.norm is True.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "A = np.array([1,2,3])\n",
+    "B = np.array([4,5,6])\n",
+    "dist = np.sqrt((A-B).dot(A-B).T)\n",
+    "\n",
+    "print(f'Validation of equality with np.linalg.norm is {dist == np.linalg.norm(A-B)}.')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Predicciones:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Implementación de el cálculo de predicciones:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "C = np.array([[1,2,3,6],\n",
+    "              [5,4,3,2],\n",
+    "              [7,8,9,8]])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([5, 4, 3, 2])"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "C[1,:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "elementos_1 = C[1,:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fila_1 = np.argsort(C[1,:])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([3, 2, 1, 0])"
+      ]
+     },
+     "execution_count": 34,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "fila_1"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Ya los devuelve ordenados !"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2 vecinos más cercanos son aquellos cuyos índices son: [3 2].\n"
+     ]
+    }
+   ],
+   "source": [
+    "k = 2\n",
+    "\n",
+    "print(f'{k} vecinos más cercanos son aquellos cuyos índices son: {fila_1[:k]}.')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "vec = np.array([0,2,4,6,8,10])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([0, 4])"
+      ]
+     },
+     "execution_count": 37,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "vec[(0,2),]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Y para elegir la predicción:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Clase más común es: 2.\n"
+     ]
+    }
+   ],
+   "source": [
+    "classes = [1,2,2]\n",
+    "\n",
+    "print(f'Clase más común es: {classes[np.argmax(np.bincount(classes))]}.')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 39,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "3"
+      ]
+     },
+     "execution_count": 39,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(np.bincount(classes))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Bincount arma el vector con todos los numeros desde el 0 hasta el mayor numero del array, y luego guarda en la posicion de cada uno la cantidad de veces que aparece..."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 40,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([0, 1, 2])"
+      ]
+     },
+     "execution_count": 40,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.bincount(classes)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 50,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Clase más común es: 4.\n"
+     ]
+    }
+   ],
+   "source": [
+    "classes = [1,1,2,3,3,3,4,4,4,4]\n",
+    "\n",
+    "print(f'Clase más común es: {np.argmax(np.bincount(classes))}.')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([0, 2, 1, 2, 2])"
+      ]
+     },
+     "execution_count": 42,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.bincount(classes)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 43,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1"
+      ]
+     },
+     "execution_count": 43,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.argmax(np.bincount(classes))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Ya de por sí elige aquella clase con la menor etiqueta, como lo solicita la letra."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arr = []\n",
+    "\n",
+    "arr = np.append(arr,[1,2])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([1., 2.])"
+      ]
+     },
+     "execution_count": 45,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arr"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arr = np.append(arr,[1,2])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([1., 2., 1., 2.])"
+      ]
+     },
+     "execution_count": 47,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arr"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Distancias 1 loop:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Se quiere repetir:\n",
+    "\n",
+    "$$\\lVert x-y \\rVert ^ 2=(x-y)(x-y)^T\\Rightarrow \\lVert x-y \\rVert=\\sqrt{(x-y)(x-y)^T},$$\n",
+    "\n",
+    "donde $x = \\text{X}_{\\text{train}}[j]$ y $y = \\text{X}_{\\text{test}}[i]$.\n",
+    "\n",
+    "El asunto ahora es que se quiere realizar en un único loop, siendo que se deberá de utilizar la funcionalidad de `broadcasting`de Python.\n",
+    "\n",
+    "La iteración se realizará en un loop a lo largo de las imágenes de Test, por lo tanto se tendrá el vector $y$ como en el caso anterior, pero no figurará el vector $x$, sino que toda la imagen $\\text{X}_{\\text{train}}$.\n",
+    "\n",
+    "$$\\lVert \\text{X}_{\\text{train}}-y \\rVert ^ 2=\\sum_{i}(\\text{X}_{\\text{train}}-y)^2,$$\n",
+    "\n",
+    "hace las veces del producto interno $(x-y)(x-y)^T$, el cual ya no puede computarse debido a la transposición y diferentes dimensiones que existen en este nuevo caso. Se destaca que $y = \\text{X}_{\\text{test}}[i]$.\n",
+    "\n",
+    "Finalmente, la distancia en el elemento $i$-ésimo resultará:\n",
+    "\n",
+    "$$d(i,)=\\sqrt{\\sum_{i}(\\text{X}_{\\text{train}}-y)^2}.$$"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Distancias NO loops:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "En este caso, sencillamente se nota que:\n",
+    "\n",
+    "$$\\lVert x-y \\rVert ^ 2 = \\lVert x \\rVert ^ 2 + \\lVert y \\rVert ^ 2 - 2 x \\cdot y ^T$$\n",
+    "\n",
+    "Teniendo en cuenta que las dimensiones son diferentes y el broadcasting deberá de realizarse utilizando `[:, np.newaxis]` y `[np.newaxis,:] `."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cross Validation:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 60,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[7, 8]\n",
+      "[1, 2, 3, 4, 5, 6, 9, 10]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Original vector\n",
+    "v = [[1, 2], [3, 4], [5, 6],[7,8],[9,10]]\n",
+    "\n",
+    "# Index i\n",
+    "i = 3\n",
+    "\n",
+    "# Extract the vector at index i\n",
+    "c = v[i]\n",
+    "\n",
+    "# Combine all other vectors into a single list using list comprehension\n",
+    "d = [item for sublist in v[:i] + v[i+1:] for item in sublist]\n",
+    "\n",
+    "print(c) \n",
+    "print(d) \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Softmax:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Gradients & Loss"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X = np.random.randn(500, 3073)\n",
+    "W = np.random.randn(3073, 10) * 0.0001"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 66,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "s = X.dot(W)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 80,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(500, 10)"
+      ]
+     },
+     "execution_count": 80,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "loss = 0"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 81,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "loss = loss - np.log((np.e ** s[1,1]) / np.sum(np.e**s) )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 84,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(500, 10)"
+      ]
+     },
+     "execution_count": 84,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 83,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([ 2,  4,  8, 16, 32, 64])"
+      ]
+     },
+     "execution_count": 83,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "2**np.array([1,2,3,4,5,6])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 73,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "reg = 0\n",
+    "h = 0.0001\n",
+    "grad = ((W+h)-W)/h\n",
+    "dW = W - reg * grad"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 91,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([1, 2, 3])"
+      ]
+     },
+     "execution_count": 91,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "p = np.array([1,2,3])\n",
+    "\n",
+    "y = np.array([0.1,0.2,0.3])\n",
+    "\n",
+    "j = 1\n",
+    "\n",
+    "i = 1\n",
+    "\n",
+    "p-(j == y[i])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 92,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "False"
+      ]
+     },
+     "execution_count": 92,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "j == y[i]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Gradients & Loss Vect"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 93,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "A = np.array([[1,2],[3,4]])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 94,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[[1 2]\n",
+      " [3 4]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(A)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 95,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "10"
+      ]
+     },
+     "execution_count": 95,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "np.sum(A)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 101,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "y = [0,1]\n",
+    "s_correct = A[y, range(2)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 102,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([1, 4])"
+      ]
+     },
+     "execution_count": 102,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s_correct"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# ANN:"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "dlvis-env",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.14"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
