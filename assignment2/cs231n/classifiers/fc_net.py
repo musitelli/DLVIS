@@ -171,10 +171,48 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # Remember:
-
         # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
-
         
+        # Dictionary of caches
+        cache = {}
+
+        # Dictionary of outputs:
+        out = {}
+
+        # I define the input to each layer, to the first one will be the input X 
+        input_to_layer = X
+
+        for n in range(1, self.num_layers):
+
+            # Debugg
+            print(f'input_to_layer.shape = {input_to_layer.shape}')
+            aux = self.params[f'W{n}']
+            print(f'W.shape = {aux.shape}')
+            aux = self.params[f'b{n}']
+            print(f'b.shape = {aux.shape}')
+            
+            # Affine forward
+            out[f'affine{n}'], cache[f'affine{n}'] = affine_forward(input_to_layer, self.params[f'W{n}'], self.params[f'b{n}'])
+
+            # Here would go the batch/layer norm
+
+            # ReLu forward
+            out[f'relu{n}'], cache[f'reulu{n}'] = relu_forward(out[f'affine{n}'])
+
+            # Here would go the dropout
+
+            # Update the input
+            input_to_layer = out[f'relu{n}']
+
+            aux = out[f'affine{n}']
+            print(f'out_affine.shape = {aux.shape}')
+            aux = out[f'relu{n}']
+            print(f'out_relu.shape = {aux.shape}')
+
+        # Outside of the for
+        out[f'affine{self.num_layers}'], cache[f'affine{self.num_layers}'] = affine_forward(input_to_layer, self.params[f'W{n}'], self.params[f'b{n}'])
+
+        # The softmax will be computed inside of the loss, since this is training (like assignment one)!
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -201,7 +239,25 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # dout will be replaced on each iteration, below is initialized
+        loss_softmax, dout = softmax_loss(out[f'affine{self.num_layers}'], y)
+
+        # Update loss with result of Softmax
+        loss = loss + loss_softmax
+
+        for n in range(self.num_layers, 1, -1):
+
+            # ReLu backward
+            dout = relu_backward(dout = dout, cache = cache[f'reulu{n}'])
+
+            # Affine backward
+            dout, dw, grads[f'b{n}'] = affine_backward(dout = dout, cache = cache[f'affine{n}'])
+        
+            # Update grads with regularization
+            grads[f'W{n}'] = dw + 0.5 * self.reg * 2 * self.params[f'W{n}']
+
+            #Include regularization term of the loss
+            loss = loss + 0.5 * self.reg * np.sum(self.params[f'W{n}']**2)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
