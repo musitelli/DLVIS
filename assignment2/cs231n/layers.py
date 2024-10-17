@@ -25,7 +25,17 @@ def affine_forward(x, w, b):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # batch size = amount of examples N (minibatch)
+    batch_size = x.shape[0]
+
+    # number of features = d_1 * d_2 * ... * d_k = np.prod(d_1, d_2, ... , d_k) = np.prod(x.shape[1:])
+    num_features = np.prod(x.shape[1:])
+
+    # x must be reshaped since the ANN expects a 2D matrix as an input
+    x_reshaped = x.reshape(batch_size, num_features)
+
+    # Affine transformation is computed below
+    out = x_reshaped.dot(w) + b
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -57,7 +67,25 @@ def affine_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # batch size = amount of examples N (minibatch)
+    batch_size = x.shape[0]
+
+    # number of features = d_1 * d_2 * ... * d_k = np.prod(d_1, d_2, ... , d_k) = np.prod(x.shape[1:])
+    num_features = np.prod(x.shape[1:])
+
+    # Remember: out = x_reshaped.dot(w) + b
+
+    # dx = dout * w
+    dx = dout.dot(w.T)
+
+    # Since dx has shape = (N,D), must be reshaped to shape = (N, d_1, ... d_k)
+    dx = dx.reshape(x.shape)
+
+    # dw = x_reshaped * dout
+    dw = x.reshape(batch_size, num_features).T.dot(dout)
+
+    # db = 1s * dout
+    db = np.sum(dout,axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -82,7 +110,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(0,x)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -108,7 +136,13 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # (ReLu(x))' = 1 if x > 0, else 0
+
+    # Hence the chain rule applies the element-wise product of the matrices x>0 and dout
+
+    # (x>0) is the ReLu : returns True ~ 1 if positive and False ~ 0 if negative
+
+    dx = (x>0) * dout
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -137,7 +171,29 @@ def softmax_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Scores, as before
+    s = x
+
+    # Stabilize by subtracting the maximum value per row for numerical stability
+    s = s - np.max(s, axis=1, keepdims=True)
+
+    # Correct class scores s_y (extract the scores corresponding to the correct class labels)
+    s_y = s[range(s.shape[0]), y]
+
+    # Loss
+    loss = -np.mean(np.log(np.exp(s_y) / np.sum(np.exp(s), axis=1)))
+
+    # Init. matrix to be the ones matrix
+    ones = np.zeros(s.shape)
+
+    # Convert by the identity function (one-hot encode labels)
+    ones[range(s.shape[0]), y] = 1
+
+    # Probability matrix
+    P = np.exp(s) / np.sum(np.exp(s), axis=1, keepdims=True)
+
+    # Gradient with respect to x (the other implementation computed dW)
+    dx = (P - ones) / x.shape[0]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

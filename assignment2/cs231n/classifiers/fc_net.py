@@ -74,7 +74,31 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # This variable has the input dimention of the layers
+        # (For layer 1 it is input_dim)
+
+        layer_input_size = input_dim
+
+        for n in range(1, self.num_layers):
+
+            self.params[f'W{n}'] = np.random.normal(loc=0.0, scale=weight_scale, size=[layer_input_size, hidden_dims[n-1]])
+            self.params[f'b{n}'] = np.zeros(hidden_dims[n-1]) 
+
+            # If batch_norm is used, there are two additional learnable parameters:
+            # Scale : gamma & Shift : beta, both of shape hidden_dims[n]
+
+            if self.normalization == 'batchnorm':
+                self.params[f'gamma{n}'] = np.ones(hidden_dims[n-1]) 
+                self.params[f'beta{n}'] = np.zeros(hidden_dims[n-1]) 
+            
+            # Update the input dimention for the next layer ( funnel ! )
+
+            layer_input_size = hidden_dims[n-1]
+
+        # After all L-1 hidden layers have been initialized, it is the turn of the output layer:
+
+        self.params[f'W{self.num_layers}'] = np.random.normal(loc=0.0, scale=weight_scale, size=[layer_input_size, num_classes])
+        self.params[f'b{self.num_layers}'] = np.zeros(num_classes) 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -146,7 +170,11 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Remember:
+
+        # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
+
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
