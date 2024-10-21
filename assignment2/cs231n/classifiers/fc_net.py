@@ -98,7 +98,7 @@ class FullyConnectedNet(object):
         # After all L-1 hidden layers have been initialized, it is the turn of the output layer:
 
         self.params[f'W{self.num_layers}'] = np.random.normal(loc=0.0, scale=weight_scale, size=[layer_input_size, num_classes])
-        self.params[f'b{self.num_layers}'] = np.zeros(num_classes) 
+        self.params[f'b{self.num_layers}'] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -183,13 +183,6 @@ class FullyConnectedNet(object):
         input_to_layer = X
 
         for n in range(1, self.num_layers):
-
-            # Debugg
-            print(f'input_to_layer.shape = {input_to_layer.shape}')
-            aux = self.params[f'W{n}']
-            print(f'W.shape = {aux.shape}')
-            aux = self.params[f'b{n}']
-            print(f'b.shape = {aux.shape}')
             
             # Affine forward
             out[f'affine{n}'], cache[f'affine{n}'] = affine_forward(input_to_layer, self.params[f'W{n}'], self.params[f'b{n}'])
@@ -197,20 +190,15 @@ class FullyConnectedNet(object):
             # Here would go the batch/layer norm
 
             # ReLu forward
-            out[f'relu{n}'], cache[f'reulu{n}'] = relu_forward(out[f'affine{n}'])
+            out[f'relu{n}'], cache[f'relu{n}'] = relu_forward(out[f'affine{n}'])
 
             # Here would go the dropout
 
             # Update the input
             input_to_layer = out[f'relu{n}']
 
-            aux = out[f'affine{n}']
-            print(f'out_affine.shape = {aux.shape}')
-            aux = out[f'relu{n}']
-            print(f'out_relu.shape = {aux.shape}')
-
         # Outside of the for
-        out[f'affine{self.num_layers}'], cache[f'affine{self.num_layers}'] = affine_forward(input_to_layer, self.params[f'W{n}'], self.params[f'b{n}'])
+        out[f'affine{self.num_layers}'], cache[f'affine{self.num_layers}'] = affine_forward(input_to_layer, self.params[f'W{self.num_layers}'], self.params[f'b{self.num_layers}'])
 
         # The softmax will be computed inside of the loss, since this is training (like assignment one)!
 
@@ -245,10 +233,20 @@ class FullyConnectedNet(object):
         # Update loss with result of Softmax
         loss = loss + loss_softmax
 
-        for n in range(self.num_layers, 1, -1):
+        # Compute the backprop of the affine layer right before the softmax
+
+        # Affine backward
+        dout, dw, grads[f'b{self.num_layers}'] = affine_backward(dout = dout, cache = cache[f'affine{self.num_layers}'])
+
+        # Update grads with regularization
+        grads[f'W{self.num_layers}'] = dw + 0.5 * self.reg * 2 * self.params[f'W{self.num_layers}']
+
+        for n in range(self.num_layers-1, 0, -1):
+
+            # Check if the n is correct to be n-1 or the for must be altered or the
 
             # ReLu backward
-            dout = relu_backward(dout = dout, cache = cache[f'reulu{n}'])
+            dout = relu_backward(dout = dout, cache = cache[f'relu{n}'])
 
             # Affine backward
             dout, dw, grads[f'b{n}'] = affine_backward(dout = dout, cache = cache[f'affine{n}'])
