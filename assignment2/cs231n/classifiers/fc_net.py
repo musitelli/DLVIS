@@ -202,6 +202,9 @@ class FullyConnectedNet(object):
 
         # The softmax will be computed inside of the loss, since this is training (like assignment one)!
 
+        # For the case of Testing, the scores must be passed:
+        scores = out[f'affine{self.num_layers}']
+
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
