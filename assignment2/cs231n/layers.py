@@ -530,45 +530,43 @@ def conv_forward_naive(x, w, b, conv_param):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     # Get dimentions from inputs:
-    N, C, H, W = x.shape
-    F, C, HH, WW = w.shape
+    N, _, H, W = x.shape
+    F, _, HH, WW = w.shape
     pad, stride = conv_param['pad'], conv_param['stride']
 
     # Specify output dimentions
-    out = np.zeros(N, F, 1 + (H + 2 * pad - HH) / stride, 1 + (W + 2 * pad - WW) / stride)
+    out = np.zeros((N, F, int(1 + (H + 2 * pad - HH) / stride), int(1 + (W + 2 * pad - WW) / stride)))
 
     # Fill in the output
 
     for n in range(N): # For every image
         
+        # Pad the nth image of shape [C, H, W]
+        padded = np.pad(x[n, :], ((0, 0), (pad, pad), (pad, pad)), 'constant') # The (0,0) is for the Channels, the are not padded
+
         for f in range(F): # For every filter
-            
-            # Pad the nth image of shape [C, H, W]
-            padded = np.pad(x[n,:], ((pad,pad),(pad,pad)), 'constant')
+          
+            # Now we move through the image and convolve
 
-            # No we move through the image and convolve
-
-            for i in range(0, H): # For every row - taking step 1 !
+            for i in range(0, H + 2 * pad - HH + 1, stride): # For every row - Note that the step ought to be stride!
                 
-                for j in range(0, W): # For every column - with step 1 !
+                # Above we take into considerationn the padding and the size of the filter to avoid going out of bound!
+                
+                for j in range(0, W + 2 * pad - WW +1, stride): # For every column - Note that the step ought to be stride!
+                    
+                    # Above we take into considerationn the padding and the size of the filter to avoid going out of bound!
                     
                     # Convolve
+                    out[n, f, i // stride, j // stride] = np.sum(padded[:, i:i + HH, j:j + WW] * w[f, :])
 
-                    if i == j == 0: # First element
-                      out[n,f,i,j] = np.sum(x[n,:,i:HH,j:WW] * w[f,:])
+                    # Note that the floor division (//) is taken in order to get the indexes 
+                    # at the output to be taken at step 1 instead of step stride !
+                    # Otherwise the iteration should have been with step 1 and the stride taken in for loops.
+                
+            # After the convolution has been computed, the bias is added
 
-                    elif i == 0: # First row
-                        out[n,f,i,j] = np.sum(x[n,:,i:HH,(j+stride):WW] * w[f,:])
-                    
-                    elif j == 0: # First column
-                      out[n,f,i,j] = np.sum(x[n,:,(i+stride):HH,j:WW] * w[f,:])
-
-                    else: # No border
-                      out[n,f,i,j] = np.sum(x[n,:,(i+stride):HH,(j+stride):WW] * w[f,:])
+            out[n,f,:,:] += b[f]
                         
-
-
-
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -595,8 +593,67 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+        # Retrieve cached values
+    x, w, b, conv_param = cache
+    pad, stride = conv_param['pad'], conv_param['stride']
+    
+    # Get dimensions
+    N, _, _, _ = x.shape
+    F, _, HH, WW = w.shape
+    _, _, H_out, W_out = dout.shape
 
+    # Initialize gradients
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    
+    # out[n,f,i,j]=(convolution)+b[f]
+    # => db = 1 * dout => SUMMATION
+
+    # Compute db (gradient with respect to bias)
+    db = np.sum(dout, axis=(0, 2, 3))
+    # The above line sums over all the images (N), height (H_out), and width (W_out), leaving only the filter index F.
+
+    # Pad the input x for dx computation
+    x_padded = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), mode='constant')
+    dx_padded = np.pad(dx, ((0,0), (0,0), (pad,pad), (pad,pad)), mode='constant')
+
+    # Compute dw and dx
+    for n in range(N):  # Loop over each image
+        
+        for f in range(F):  # Loop over each filter
+            
+            for i in range(H_out):  # Loop over dout height
+                
+                for j in range(W_out):  # Loop over dout width
+                    
+                    # Find the slice in x_padded that contributed to this dout element:
+                    # (multiplying by stride gives the specific indexes, given that on the forward we iterated over stride)
+                    h_start = i * stride
+                    h_end = h_start + HH
+                    w_start = j * stride
+                    w_end = w_start + WW
+
+                    # Calculate dw (gradient with respect to the filter weights)
+                    # out[n,f,i,j] = ∑∑∑ x[n,c,i+p,j+q]⋅w[f,c,p,q]+b[f]
+                    # => dw[f,c,p,q] = ∑ dout[n,f,i,j]⋅x[n,c,i⋅stride+p,j⋅stride+q]
+                    dw[f] += x_padded[n, :, h_start:h_end, w_start:w_end] * dout[n, f, i, j]
+                    
+                    # x_padded is the padded input,and the slice [h_start:h_end, w_start:w_end] corresponds to the portion of the 
+                    # input that contributed to the current dout[n, f, i, j].
+
+                    # Calculate dx (gradient with respect to the input)
+                    # out[n,f,i,j] = ∑∑∑ x[n,c,i+p,j+q]⋅w[f,c,p,q]+b[f]
+                    # dx[n,c,i,j]= ∑∑∑ dout[n,f,i−p,j−q]⋅w[f,c,p,q]
+
+                    dx_padded[n, :, h_start:h_end, w_start:w_end] += w[f] * dout[n, f, i, j]
+
+                    # dx_padded is updated by the convolution of the filters with the corresponding gradient dout[n, f, i, j]. 
+                    # The region of dx affected by this gradient is updated accordingly.
+
+    # Remove padding from dx_padded to get dx
+    dx = dx_padded[:, :, pad:-pad, pad:-pad] if pad > 0 else dx_padded
+                
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
