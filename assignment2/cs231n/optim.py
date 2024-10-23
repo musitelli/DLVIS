@@ -69,7 +69,15 @@ def sgd_momentum(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Get values from dictionary:
+    momentum = config['momentum']
+    learning_rate = config['learning_rate']
+
+    # Update velocity:
+    v = momentum * v - learning_rate * dw
+
+    # Update weights:
+    next_w = w + v
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -107,7 +115,20 @@ def rmsprop(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Get values from dictionary:
+    learning_rate = config['learning_rate']
+    decay_rate = config['decay_rate']
+    epsilon = config['epsilon']
+    grad_squared = config['cache']
+
+    # Update the grad squared:
+    grad_squared = decay_rate * grad_squared + (1 - decay_rate) * dw * dw
+
+    # Update the weights:
+    next_w = w - learning_rate * dw / (np.sqrt(grad_squared) + epsilon)
+
+    # Update the cache:
+    config['cache'] = grad_squared
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -152,7 +173,33 @@ def adam(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Get values from dictionary:
+    learning_rate = config['learning_rate']
+    beta1 = config['beta1']
+    beta2 = config['beta2']
+    epsilon = config['epsilon']
+    m = config['m']
+    v = config['v']
+    t = config['t'] + 1 # Update it ! 
+
+    # Update first momentum:
+    m = beta1 * m + (1-beta1) * dw
+
+    # Update second momentum:
+    v = beta2 * v + (1-beta2) * dw * dw
+
+    # Bias correction
+
+    m_ub = m / (1 - beta1 ** t)
+    v_ub = v / (1 - beta2 ** t)
+
+    # Update weights
+    next_w = w - learning_rate * m_ub / (np.sqrt(v_ub) + epsilon)
+
+    # Update dictionary (update without the bias correction!): 
+    config['m'] = m 
+    config['v'] = v
+    config['t'] = t
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

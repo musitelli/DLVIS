@@ -300,7 +300,22 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # FORWARD PASS: Step-by-Step
+        
+        # Step 1. xc = x - running_mean
+        xc = x - bn_param["running_mean"]
+        
+        # Step 2. invv = 1 / vsq
+        invv = 1.0 / np.sqrt(bn_param["running_var"])
+        
+        # Step 3. xn = xc * invv
+        xn = xc * invv
+        
+        # Step 4. xg = xn * gamma
+        xgamma = xn * gamma
+        
+        # Step 9. out = xg + beta
+        out = xgamma + beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -416,7 +431,15 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Generate random mask,
+        # where the dimensions are *x.shape ('*' operator unpacks the tuple returned by the .shape into two attributes)
+        # and comparing against p returns 1 if condition is matched or 0 otherwise
+        # (note that dividing by p makes that you no longer need to update the prediction, this is the INVERTED DROPOUT) 
+
+        mask = (np.random.rand(*x.shape) < p) / p
+
+        # Generate the out by multipliyng (masking elements where the condition above got 0)
+        out = x * mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -428,7 +451,8 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Nothing is performed in here, thanks to the inverted dropout !
+        out = x 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -458,7 +482,10 @@ def dropout_backward(dout, cache):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # f(x) = mask * X => df / dx = mask 
+
+        # So the product between the mask and dout is computed
+        dx = dout * mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -502,7 +529,45 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Get dimentions from inputs:
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    pad, stride = conv_param['pad'], conv_param['stride']
+
+    # Specify output dimentions
+    out = np.zeros(N, F, 1 + (H + 2 * pad - HH) / stride, 1 + (W + 2 * pad - WW) / stride)
+
+    # Fill in the output
+
+    for n in range(N): # For every image
+        
+        for f in range(F): # For every filter
+            
+            # Pad the nth image of shape [C, H, W]
+            padded = np.pad(x[n,:], ((pad,pad),(pad,pad)), 'constant')
+
+            # No we move through the image and convolve
+
+            for i in range(0, H): # For every row - taking step 1 !
+                
+                for j in range(0, W): # For every column - with step 1 !
+                    
+                    # Convolve
+
+                    if i == j == 0: # First element
+                      out[n,f,i,j] = np.sum(x[n,:,i:HH,j:WW] * w[f,:])
+
+                    elif i == 0: # First row
+                        out[n,f,i,j] = np.sum(x[n,:,i:HH,(j+stride):WW] * w[f,:])
+                    
+                    elif j == 0: # First column
+                      out[n,f,i,j] = np.sum(x[n,:,(i+stride):HH,j:WW] * w[f,:])
+
+                    else: # No border
+                      out[n,f,i,j] = np.sum(x[n,:,(i+stride):HH,(j+stride):WW] * w[f,:])
+                        
+
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

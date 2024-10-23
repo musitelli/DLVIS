@@ -187,17 +187,38 @@ class FullyConnectedNet(object):
             # Affine forward
             out[f'affine{n}'], cache[f'affine{n}'] = affine_forward(input_to_layer, self.params[f'W{n}'], self.params[f'b{n}'])
 
-            # Here would go the batch/layer norm
+            if self.normalization == 'batchnorm':
+
+                # Batch Normalization
+                out[f'batch_norm{n}'], cache[f'batch_norm{n}'] = batchnorm_forward(out[f'affine{n}'], self.params[f'gamma{n}'], self.params[f'beta{n}'], self.bn_params[n-1])
+
+                # Define input of ReLu based on Batchnorm
+                input_to_relu = out[f'batch_norm{n}']
+
+            else:
+
+                # Define input to Relu based on Batchnorm
+                input_to_relu = out[f'affine{n}']
+
 
             # ReLu forward
-            out[f'relu{n}'], cache[f'relu{n}'] = relu_forward(out[f'affine{n}'])
+            out[f'relu{n}'], cache[f'relu{n}'] = relu_forward(input_to_relu)
 
-            # Here would go the dropout
+            if self.use_dropout:
 
-            # Update the input
-            input_to_layer = out[f'relu{n}']
+                # Perform Dropout Forward Pass
+                out[f'dropout{n}'], cache[f'dropout{n}'] = dropout_forward(out[f'relu{n}'], self.dropout_param)
+
+                # Update the input to next layer to be the output of the Dropout forward layer
+                input_to_layer = out[f'dropout{n}']
+
+            else:
+
+                # Do not perform it & Update the input to next layer to be the output of the Relu
+                input_to_layer = out[f'relu{n}']
 
         # Outside of the for
+
         out[f'affine{self.num_layers}'], cache[f'affine{self.num_layers}'] = affine_forward(input_to_layer, self.params[f'W{self.num_layers}'], self.params[f'b{self.num_layers}'])
 
         # The softmax will be computed inside of the loss, since this is training (like assignment one)!
@@ -246,10 +267,18 @@ class FullyConnectedNet(object):
 
         for n in range(self.num_layers-1, 0, -1):
 
-            # Check if the n is correct to be n-1 or the for must be altered or the
+            if self.use_dropout:
+
+                # Compute backward of Dropout
+                dout = dropout_backward(dout, cache[f'dropout{n}'])
 
             # ReLu backward
             dout = relu_backward(dout = dout, cache = cache[f'relu{n}'])
+
+            if self.normalization == 'batchnorm':
+
+                # Compute backward of batchnorm
+                dout, grads[f'gamma{n}'], grads[f'beta{n}'] = batchnorm_backward(dout, cache[f'batch_norm{n}'])
 
             # Affine backward
             dout, dw, grads[f'b{n}'] = affine_backward(dout = dout, cache = cache[f'affine{n}'])
