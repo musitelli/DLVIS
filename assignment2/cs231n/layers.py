@@ -687,7 +687,30 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Get params from inputs:
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, H, W = x.shape
+    
+    # Init the output:
+    out = np.zeros((N, C, int(1 + (H - pool_height) / stride), int(1 + (W - pool_width) / stride)))
+
+    # Fill in the output
+
+    for n in range(N): # For every image
+        
+        for c in range(C): # For every channel
+            
+            # Now we move accross each pixel
+
+            for i in range(0, H - pool_height + 1, stride): # Same as with the conv !
+                
+                for j in range(0, W - pool_width + 1, stride): # Same as with the conv !
+
+                    # Implement Max Pooling with np.max:
+                    out[n, c, i // stride, j // stride] = np.max(x[n, c, i:i+pool_height, j:j+pool_width])
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -713,7 +736,49 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Get params from cache:
+    pool_param = cache[1]
+    x = cache[0]
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, _, _ = x.shape
+    _, _, H_dout, W_dout = dout.shape
+
+    dx = np.zeros_like(x)
+
+    # dx = 1s at each max number of the pooling window and 0 otherwise
+    # (this without applying chan rule, then dx * dout, but we do this)
+
+    # Fill in the dx
+
+    for n in range(N):  # Loop over each image
+        
+        for c in range(C):  # Loop over each channel
+            
+            # What follows loops over dout since its dimensions differ from the pooling filter and X
+
+            for i in range(H_dout):  # Loop over dout height
+                
+                for j in range(W_dout):  # Loop over dout width
+                    
+                    # Window indexes of the input that was pooled
+                    h_start = i * stride
+                    h_end = h_start + pool_height
+                    w_start = j * stride
+                    w_end = w_start + pool_width
+                    
+                    # Portion of x that corresponds to this pooling window
+                    x_window = x[n, c, h_start:h_end, w_start:w_end]
+                    
+                    # Mask of where the maximum value in the window occurred
+                    # (this is the 1s matrix)
+                    mask = (x_window == np.max(x_window))
+                    
+                    # Apply Chain Rule
+                    # (since mask has 1 where the max occured and 0 otherwise, the number dout[n, c, i, j] replaces the 1)
+                    dx[n, c, h_start:h_end, w_start:w_end] += mask * dout[n, c, i, j]
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
