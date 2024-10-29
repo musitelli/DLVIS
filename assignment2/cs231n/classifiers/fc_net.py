@@ -263,7 +263,7 @@ class FullyConnectedNet(object):
         dout, dw, grads[f'b{self.num_layers}'] = affine_backward(dout = dout, cache = cache[f'affine{self.num_layers}'])
 
         # Update grads with regularization
-        grads[f'W{self.num_layers}'] = dw + 0.5 * self.reg * 2 * self.params[f'W{self.num_layers}']
+        grads[f'W{self.num_layers}'] = dw #+  2 * self.reg * 0.5 * self.params[f'W{self.num_layers}']
 
         for n in range(self.num_layers-1, 0, -1):
 

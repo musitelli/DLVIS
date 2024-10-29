@@ -63,7 +63,24 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Get dimensions:
+        C, H, W = input_dim
+
+        # Layer 1 (Conv): num_filters filters of sizes C x filter_size x filter_size (they are squared)
+        self.params['W1'] = np.random.normal(loc=0.0, scale=weight_scale, size=[num_filters, C, filter_size, filter_size])
+        self.params['b1'] = np.zeros(num_filters)
+
+        # Then comes ReLu & MaxPooling, hence dimensions change:
+        # (create dimensions for the 2x2 MaxPooling)
+        HP, WP = int(1 + (H - 2)/2), int(1 + (W - 2)/2)
+        
+        # Layer 2 (Affine): dimensions ought to be flattened
+        self.params['W2'] = np.random.normal(loc=0.0, scale=weight_scale, size=[num_filters * HP * WP, hidden_dim])
+        self.params['b2'] = np.zeros(hidden_dim)
+        
+        # Layer 3 (Affine):
+        self.params['W3'] = np.random.normal(loc=0.0, scale=weight_scale, size=[hidden_dim, num_classes])
+        self.params['b3'] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -102,7 +119,34 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # conv - relu - 2x2 max pool - affine - relu - affine - softmax
+
+        # Conv (with fast layers):
+        # cache = (x, w, b, conv_param, x_cols)
+        out, cache_conv = conv_forward_im2col(X, W1, b1, conv_param)
+
+        # ReLu 1:
+        # cache = x
+        out, cache_relu_1 = relu_forward(out)
+
+        # MaxPooling:
+        out, cache_mp = max_pool_forward_fast(out, pool_param)
+
+        # Affine 1:
+        # cache = (x, w, b)
+        out, cache_aff_1 = affine_forward(out, W2, b2)
+
+        # ReLu 2:
+        # cache = x
+        out, cache_relu_2 = relu_forward(out)
+
+        # Affine 2:
+        # cache = (x, w, b)
+        out, cache_aff_2 = affine_forward(out, W3, b3)
+
+        # As already known, Softmax is implkemented at the Backward !
+
+        scores = out
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -125,7 +169,34 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+         # Softmax:
+        loss, dout =softmax_loss(out, y)
+
+        # Affine 2 backward:
+        dout, grads['W3'] , grads['b3'] = affine_backward(dout, cache_aff_2)
+
+        # ReLu 2 backward:
+        dout = relu_backward(dout, cache_relu_2)
+
+        # Affine 1 backward:
+        dout, grads['W2'] , grads['b2'] = affine_backward(dout, cache_aff_1)
+
+        # MP:
+        dout = max_pool_backward_fast(dout, cache_mp)
+
+        # ReLu 1 backward:
+        dout = relu_backward(dout, cache_relu_1)
+
+        # Conv backward
+        dout, grads['W1'] , grads['b1'] = conv_backward_im2col(dout, cache_conv)
+
+        # Update grads with regularization
+        grads['W1'] += 0.5 * self.reg * 2 * W1
+        grads['W2'] += 0.5 * self.reg * 2 * W2
+        grads['W3'] += 0.5 * self.reg * 2 * W3
+
+        #Include regularization term of the loss
+        loss = loss + 0.5 * self.reg * np.sum(W1**2) + 0.5 * self.reg * np.sum(W2**2) + 0.5 * self.reg * np.sum(W3**2)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################

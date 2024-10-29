@@ -306,7 +306,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         xc = x - bn_param["running_mean"]
         
         # Step 2. invv = 1 / vsq
-        invv = 1.0 / np.sqrt(bn_param["running_var"])
+        invv = 1.0 / np.sqrt(bn_param["running_var"]+eps)
         
         # Step 3. xn = xc * invv
         xn = xc * invv
@@ -819,7 +819,19 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    N, C, H, W = x.shape
     
+    # We must normaliza across the C channel, hence we ought to reshape our data to N * H * W x C
+    # So, reshape and transpose: (N, C, H, W) -> (N*H*W, C)
+    # Note that .transpose(0, 2, 3, 1): changes shape from (N, C, H, W) to (N, H, W, C) so that the reshape can leave the C chnnel independent
+    X_flat = x.transpose(0, 2, 3, 1).reshape(N * H * W, C)
+    
+    # Apply batch normalization on the reshaped data
+    # The function is: batchnorm_forward(x, gamma, beta, bn_param)
+    out_flat, cache = batchnorm_forward(X_flat, gamma, beta, bn_param)
+    
+    # Reshape back to original dimensions: (N*H*W, C) -> (N, C, H, W)
+    out = out_flat.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -852,7 +864,18 @@ def spatial_batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = dout.shape
+    
+    # We must normaliza across the C channel, hence we ought to reshape our data to N * H * W x C
+    # So, reshape and transpose: (N, C, H, W) -> (N*H*W, C)
+    # Note that .transpose(0, 2, 3, 1): changes shape from (N, C, H, W) to (N, H, W, C) so that the reshape can leave the C chnnel independent
+    dout_flat = dout.transpose(0, 2, 3, 1).reshape(N * H * W, C)
+
+    # Instanciate the backward, as during the forward:
+    dx_flat, dgamma, dbeta = batchnorm_backward(dout_flat, cache)
+
+    # Reshape back to original dimensions: (N*H*W, C) -> (N, C, H, W)
+    dx = dx_flat.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
